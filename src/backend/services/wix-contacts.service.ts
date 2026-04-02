@@ -231,6 +231,8 @@ export class WixContactsService {
     const info = contact.info;
 
     fields._id = contact.id;
+    if (contact.updatedDate) fields.updatedDate = contact.updatedDate;
+    if (contact.createdDate) fields.createdDate = contact.createdDate;
     if (info.name?.first) fields.firstName = info.name.first;
     if (info.name?.last) fields.lastName = info.name.last;
     if (info.emails?.items?.[0]?.email) fields.emailAddress = info.emails.items[0].email;

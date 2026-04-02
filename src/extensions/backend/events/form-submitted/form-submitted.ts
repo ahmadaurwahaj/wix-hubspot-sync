@@ -1,61 +1,125 @@
 import { submissions } from '@wix/forms';
+import { items } from '@wix/data';
+import { auth } from '@wix/essentials';
+
+const APP_NAMESPACE = '@zohaibahmad7/wh-integration';
+const CONNECTIONS = `${APP_NAMESPACE}/connections`;
+const SYNC_LOGS = `${APP_NAMESPACE}/sync-logs`;
+
+/** Write a diagnostic sync-log entry so errors are visible on the dashboard */
+async function writeDiagnosticLog(entry: Record<string, any>) {
+  try {
+    await auth.elevate(items.insert)(SYNC_LOGS, {
+      siteId: entry.siteId || 'unknown',
+      syncCorrelationId: entry.syncCorrelationId || 'diag-' + Date.now(),
+      source: entry.source || 'wix_form',
+      action: entry.action || 'create',
+      status: entry.status || 'error',
+      error: entry.error || null,
+      metadata: entry.metadata ? JSON.stringify(entry.metadata) : null,
+      logTimestamp: new Date(),
+    });
+  } catch (logErr) {
+    console.error('[form-submitted] Failed to write diagnostic log:', logErr);
+  }
+}
 
 export default submissions.onSubmissionCreated(async (event: any) => {
-  console.log('=== WIX FORM SUBMISSION EVENT (onSubmissionCreated) ===');
-  console.log('Full event:', JSON.stringify(event, null, 2));
+  console.log('[form-submitted] Event received');
 
+  // Step 1: Test if auth.elevate works at all in this context
+  let siteId = 'unknown';
   try {
-    const { DatabaseService } = await import('../../../../backend/services/database.service');
-    const { SyncService } = await import('../../../../backend/services/sync.service');
-    const { TokenManager } = await import('../../../../backend/utils/token-manager');
+    const connResult = await auth.elevate(items.query)(CONNECTIONS)
+      .eq('status', 'connected')
+      .find();
 
-    // Extract entity — handle both SDK-normalized shape and raw webhook shape
-    const submission = event.entity ?? event.createdEvent?.entity;
+    if (connResult.items.length === 0) {
+      console.log('[form-submitted] No active HubSpot connection found');
+      await writeDiagnosticLog({
+        status: 'error',
+        error: 'No active HubSpot connection found in CMS',
+        source: 'wix_form',
+        metadata: { step: 'getConnection', eventKeys: Object.keys(event) },
+      });
+      return;
+    }
+
+    const conn = connResult.items[0] as Record<string, any>;
+    siteId = conn.siteId;
+    console.log('[form-submitted] Found connection for siteId:', siteId);
+  } catch (dbErr: any) {
+    console.error('[form-submitted] auth.elevate/query FAILED:', dbErr);
+    // Can't write to CMS since auth.elevate itself failed
+    return;
+  }
+
+  // Step 2: Extract form submission data
+  let submissionFields: Record<string, any> = {};
+  let formId = '';
+  try {
+    const submission = event.entity ?? event.createdEvent?.entity ?? event.data?.entity;
     if (!submission) {
-      console.log('WARNING: No submission entity found in event');
+      await writeDiagnosticLog({
+        siteId,
+        status: 'error',
+        error: `No submission entity found. Event keys: ${Object.keys(event).join(', ')}`,
+        source: 'wix_form',
+        metadata: { step: 'extractEntity', eventShape: JSON.stringify(event).slice(0, 500) },
+      });
       return;
     }
+    formId = submission.formId || '';
+    submissionFields = submission.submissions ?? {};
+    console.log('[form-submitted] Fields:', JSON.stringify(submissionFields));
+  } catch (extractErr: any) {
+    await writeDiagnosticLog({
+      siteId,
+      status: 'error',
+      error: `Extract submission failed: ${extractErr?.message}`,
+      source: 'wix_form',
+      metadata: { step: 'extractFields' },
+    });
+    return;
+  }
 
-    const formId = submission.formId;
-    // submissions is a key-value object: { "first_name": "Baxter", "email_d952": "..." }
-    const submissionFields = submission.submissions ?? {};
+  // Step 3: Get valid access token
+  let accessToken: string;
+  try {
+    const { TokenManager } = await import('../../../../backend/utils/token-manager');
+    accessToken = await TokenManager.getValidAccessToken(siteId);
+    console.log('[form-submitted] Got access token (length):', accessToken?.length);
+  } catch (tokenErr: any) {
+    await writeDiagnosticLog({
+      siteId,
+      status: 'error',
+      error: `Token retrieval failed: ${tokenErr?.message}`,
+      source: 'wix_form',
+      metadata: { step: 'getToken' },
+    });
+    return;
+  }
 
-    console.log('Form ID:', formId);
-    console.log('Submission fields:', JSON.stringify(submissionFields));
-
-    // Get instanceId from metadata, or fall back to the active connection
-    let instanceId = event.metadata?.instanceId;
-    const connection = instanceId
-      ? await DatabaseService.getConnection(instanceId)
-      : await DatabaseService.getActiveConnection();
-
-    if (!connection || connection.status !== 'connected') {
-      console.log('No active HubSpot connection, skipping form sync');
-      return;
-    }
-    instanceId = instanceId || connection.siteId;
-    console.log('Instance/Site ID:', instanceId);
-
-    // Get valid access token
-    const accessToken = await TokenManager.getValidAccessToken(instanceId);
-
-    // Build the event shape that SyncService.submitFormToHubSpot expects
-    // Pass the submissions dict as-is — extractFormFields handles both dict and array formats
+  // Step 4: Push to HubSpot
+  try {
+    const { SyncService } = await import('../../../../backend/services/sync.service');
     const formEvent = {
       formSubmission: {
-        formId: formId ?? '',
+        formId,
         submissions: submissionFields,
       },
-      instanceId,
+      instanceId: siteId,
     };
 
-    // Submit form data to HubSpot
-    console.log('Submitting form data to HubSpot...');
-    await SyncService.submitFormToHubSpot(formEvent as any, instanceId, accessToken);
-
-    console.log('=== FORM SUBMISSION PROCESSED SUCCESSFULLY ===');
-  } catch (error) {
-    console.error('=== FORM SUBMISSION ERROR ===');
-    console.error('Error:', error);
+    await SyncService.submitFormToHubSpot(formEvent as any, siteId, accessToken);
+    console.log('[form-submitted] Successfully synced to HubSpot');
+  } catch (syncErr: any) {
+    await writeDiagnosticLog({
+      siteId,
+      status: 'error',
+      error: `HubSpot sync failed: ${syncErr?.message}`,
+      source: 'wix_form',
+      metadata: { step: 'submitToHubSpot', formId },
+    });
   }
 });

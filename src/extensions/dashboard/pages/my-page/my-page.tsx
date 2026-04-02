@@ -141,34 +141,6 @@ const DashboardPage: FC = () => {
               </Card.Content>
             </Card>
 
-   
-            {data.connected && data.stats && (
-              <Card>
-                <Card.Header title="Sync Statistics" />
-                <Card.Divider />
-                <Card.Content>
-                  <Box gap="SP4">
-                    <Box direction="vertical" gap="SP1" width="25%">
-                      <Text size="small" secondary>Total Syncs</Text>
-                      <Text size="medium" weight="bold">{data.stats.total}</Text>
-                    </Box>
-                    <Box direction="vertical" gap="SP1" width="25%">
-                      <Text size="small" secondary>Successful</Text>
-                      <Text size="medium" weight="bold" skin="success">{data.stats.success}</Text>
-                    </Box>
-                    <Box direction="vertical" gap="SP1" width="25%">
-                      <Text size="small" secondary>Errors</Text>
-                      <Text size="medium" weight="bold" skin="error">{data.stats.error}</Text>
-                    </Box>
-                    <Box direction="vertical" gap="SP1" width="25%">
-                      <Text size="small" secondary>Success Rate</Text>
-                      <Text size="medium" weight="bold">{successRate}%</Text>
-                    </Box>
-                  </Box>
-                </Card.Content>
-              </Card>
-            )}
-
             <Card>
               <Card.Header title="Quick Actions" />
               <Card.Divider />

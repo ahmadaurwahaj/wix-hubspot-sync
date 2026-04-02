@@ -348,8 +348,8 @@ export class SyncService {
         lastSyncedAt: hubspotUpdatedAt,
         lastSyncSource: 'wix',
         syncCorrelationId: syncId,
-        version: 1,
-        createdAt: new Date(),
+        version: existingMapping ? (existingMapping.version || 0) + 1 : 1,
+        createdAt: existingMapping?.createdAt || new Date(),
         updatedAt: new Date(),
       });
 
