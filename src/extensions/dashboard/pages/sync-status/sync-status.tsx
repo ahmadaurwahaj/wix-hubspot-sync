@@ -18,12 +18,13 @@ import { getInstanceId, apiFetch } from '../../lib/api';
 
 interface SyncLog {
   _id: string;
-  source: 'wix' | 'hubspot';
+  source: 'wix' | 'hubspot' | 'wix_form';
   action: 'create' | 'update' | 'delete';
   status: 'success' | 'error' | 'skipped';
   wixContactId?: string;
   hubspotContactId?: string;
   error?: string;
+  metadata?: Record<string, any>;
   timestamp: string;
 }
 
@@ -121,6 +122,15 @@ const SyncStatusPage: FC = () => {
 
   const getSourceIcon = (source: string) => {
     return source === 'wix' ? <Icons.StatusComplete /> : <Icons.StatusComplete />;
+  };
+
+  const getSourceLabel = (source: string) => {
+    switch (source) {
+      case 'wix': return 'Wix';
+      case 'wix_form': return 'Wix Form';
+      case 'hubspot': return 'HubSpot';
+      default: return source;
+    }
   };
 
   const getActionText = (action: string) => {
@@ -289,7 +299,7 @@ const SyncStatusPage: FC = () => {
                           <Box gap="SP1" verticalAlign="middle">
                             {getSourceIcon(row.source)}
                             <Text size="small" weight="bold">
-                              {row.source === 'wix' ? 'Wix' : 'HubSpot'}
+                              {getSourceLabel(row.source)}
                             </Text>
                           </Box>
                         ),
