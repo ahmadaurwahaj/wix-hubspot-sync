@@ -7,7 +7,7 @@ import { logger } from '../../../backend/utils/logger';
 import { getSecret } from '../../../backend/utils/secrets';
 
 /**
- * HubSpot Webhook receiver — /_wix/extensions/api/hubspot/webhook
+ * HubSpot Webhook receiver — /api/hubspot/webhook
  *
  * HubSpot sends an array of subscription events. Each event contains:
  *   { subscriptionType, objectId, propertyName, propertyValue, changeSource, ... }
@@ -20,30 +20,32 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.text();
 
-    // ── Signature verification ────────────────────────────
-    let clientSecret: string | undefined;
-    try { clientSecret = await getSecret('HUBSPOT_CLIENT_SECRET'); } catch { /* optional */ }
+    // ── Signature verification (mandatory) ──────────────
+    const clientSecret = await getSecret('HUBSPOT_CLIENT_SECRET');
     const signatureHeader = request.headers.get('X-HubSpot-Signature-v3');
     const timestampHeader = request.headers.get('X-HubSpot-Request-Timestamp');
 
-    if (signatureHeader && clientSecret && timestampHeader) {
-      const isValid = verifySignatureV3(
-        clientSecret,
-        request.method,
-        request.url,
-        body,
-        timestampHeader,
-        signatureHeader,
-      );
-      if (!isValid) {
-        logger.warn('Invalid HubSpot webhook signature');
-        return json({ error: 'Invalid signature' }, 401);
-      }
+    if (!signatureHeader || !timestampHeader) {
+      logger.warn('HubSpot webhook missing signature headers');
+      return json({ error: 'Missing signature headers' }, 401);
+    }
 
-      // Reject if timestamp older than 5 minutes (replay protection)
-      if (Math.abs(Date.now() - Number(timestampHeader)) > 300_000) {
-        return json({ error: 'Stale timestamp' }, 401);
-      }
+    // Reject if timestamp older than 5 minutes (replay protection)
+    if (Math.abs(Date.now() - Number(timestampHeader)) > 300_000) {
+      return json({ error: 'Stale timestamp' }, 401);
+    }
+
+    const isValid = verifySignatureV3(
+      clientSecret,
+      request.method,
+      request.url,
+      body,
+      timestampHeader,
+      signatureHeader,
+    );
+    if (!isValid) {
+      logger.warn('Invalid HubSpot webhook signature');
+      return json({ error: 'Invalid signature' }, 401);
     }
 
     const events: HubSpotWebhookEvent[] = JSON.parse(body);

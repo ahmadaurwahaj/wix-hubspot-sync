@@ -16,19 +16,23 @@ import { getSecret } from '../../../backend/utils/secrets';
  * perform CMS writes.
  */
 
-const APP_NAMESPACE = '@zohaibahmad7/wh-integration';
-const CONNECTIONS = `${APP_NAMESPACE}/connections`;
+import { COLLECTIONS } from '../../../backend/constants';
+
+const { CONNECTIONS } = COLLECTIONS;
 
 /**
  * Create a Wix SDK client with app-level auth using AppStrategy.
  * Works without AsyncLocalStorage / auth middleware context.
  */
 async function getDirectClient() {
+  // WIX_CLIENT_INSTANCE_ID and WIX_CLIENT_PUBLIC_KEY are auto-injected by
+  // the Wix platform at runtime (import.meta.env). getSecret() falls through
+  // to import.meta.env when they're not in Secrets Manager.
   const [appId, appSecret, instanceId, publicKey] = await Promise.all([
-    getSecret('APP_WIX_CLIENT_ID').catch(() => import.meta.env.WIX_CLIENT_ID),
-    getSecret('APP_WIX_CLIENT_SECRET').catch(() => import.meta.env.WIX_CLIENT_SECRET),
-    Promise.resolve(import.meta.env.WIX_CLIENT_INSTANCE_ID),
-    Promise.resolve(import.meta.env.WIX_CLIENT_PUBLIC_KEY),
+    getSecret('APP_WIX_CLIENT_ID'),
+    getSecret('APP_WIX_CLIENT_SECRET'),
+    getSecret('WIX_CLIENT_INSTANCE_ID'),
+    getSecret('WIX_CLIENT_PUBLIC_KEY'),
   ]);
 
   return createClient({
@@ -101,7 +105,7 @@ export const GET: APIRoute = async ({ request }) => {
     console.log('[HubSpot OAuth] Saving connection for instanceId:', instanceId, 'portalId:', hubspotAccountId);
     try {
       const client = await getDirectClient();
-      const dataItems = client.use(items);
+      const dataItems = client.use(items) as any;
 
       // Check for existing connection
       const existing = await dataItems.query(CONNECTIONS)

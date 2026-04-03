@@ -7,13 +7,9 @@ import type {
   SyncLog,
 } from '../types/models';
 import { logger } from '../utils/logger';
+import { COLLECTIONS } from '../constants';
 
-// Collection IDs: <app-namespace>/<idSuffix> as required by Wix Data API
-const APP_NAMESPACE = '@zohaibahmad7/wh-integration';
-const CONNECTIONS = `${APP_NAMESPACE}/connections`;
-const FIELD_MAPPINGS = `${APP_NAMESPACE}/field-mappings`;
-const SYNC_MAPPINGS = `${APP_NAMESPACE}/sync-mappings`;
-const SYNC_LOGS = `${APP_NAMESPACE}/sync-logs`;
+const { CONNECTIONS, FIELD_MAPPINGS, SYNC_MAPPINGS, SYNC_LOGS } = COLLECTIONS;
 
 // Lazy-elevated data operations — auth.elevate() requires the Wix runtime
 // context (AsyncLocalStorage) which is only available at call time, not at

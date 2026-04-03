@@ -1,10 +1,9 @@
 import { contacts } from '@wix/crm';
 import { items } from '@wix/data';
 import { auth } from '@wix/essentials';
+import { COLLECTIONS } from '../../../../backend/constants';
 
-const APP_NAMESPACE = '@zohaibahmad7/wh-integration';
-const CONNECTIONS = `${APP_NAMESPACE}/connections`;
-const SYNC_LOGS = `${APP_NAMESPACE}/sync-logs`;
+const { CONNECTIONS, SYNC_LOGS } = COLLECTIONS;
 
 async function writeDiagnosticLog(entry: Record<string, any>) {
   try {
