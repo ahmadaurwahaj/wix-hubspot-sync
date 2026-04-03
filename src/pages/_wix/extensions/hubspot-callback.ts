@@ -1,9 +1,9 @@
-import type { APIRoute } from 'astro';
-import { createClient, AppStrategy } from '@wix/sdk';
-import { items } from '@wix/data';
-import { HubSpotService } from '../../../backend/services/hubspot.service';
-import { validateOAuthState } from '../../../backend/utils/oauth-state';
-import { getSecret } from '../../../backend/utils/secrets';
+import type { APIRoute } from "astro";
+import { createClient, AppStrategy } from "@wix/sdk";
+import { items } from "@wix/data";
+import { HubSpotService } from "../../../backend/services/hubspot.service";
+import { validateOAuthState } from "../../../backend/utils/oauth-state";
+import { getSecret } from "../../../backend/utils/secrets";
 
 /**
  * HubSpot OAuth callback — /_wix/extensions/hubspot-callback
@@ -16,7 +16,7 @@ import { getSecret } from '../../../backend/utils/secrets';
  * perform CMS writes.
  */
 
-import { COLLECTIONS } from '../../../backend/constants';
+import { COLLECTIONS } from "../../../backend/constants";
 
 const { CONNECTIONS } = COLLECTIONS;
 
@@ -29,10 +29,10 @@ async function getDirectClient() {
   // the Wix platform at runtime (import.meta.env). getSecret() falls through
   // to import.meta.env when they're not in Secrets Manager.
   const [appId, appSecret, instanceId, publicKey] = await Promise.all([
-    getSecret('APP_WIX_CLIENT_ID'),
-    getSecret('APP_WIX_CLIENT_SECRET'),
-    getSecret('WIX_CLIENT_INSTANCE_ID'),
-    getSecret('WIX_CLIENT_PUBLIC_KEY'),
+    getSecret("APP_WIX_CLIENT_ID"),
+    getSecret("APP_WIX_CLIENT_SECRET"),
+    getSecret("WIX_CLIENT_INSTANCE_ID"),
+    getSecret("WIX_CLIENT_PUBLIC_KEY"),
   ]);
 
   return createClient({
@@ -47,69 +47,83 @@ async function getDirectClient() {
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    const url   = new URL(request.url);
-    const code  = url.searchParams.get('code');
-    const state = url.searchParams.get('state');
-    const error = url.searchParams.get('error');
+    const url = new URL(request.url);
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const error = url.searchParams.get("error");
 
     if (error) {
-      console.error('[HubSpot OAuth] Error from HubSpot', { error });
+      console.error("[HubSpot OAuth] Error from HubSpot", { error });
       return html(createErrorHTML(`OAuth error: ${error}`), 400);
     }
 
     if (!code) {
-      return html(createErrorHTML('Authorization code missing'), 400);
+      return html(createErrorHTML("Authorization code missing"), 400);
     }
 
     if (!state) {
-      return html(createErrorHTML('State parameter missing — CSRF check failed'), 400);
+      return html(
+        createErrorHTML("State parameter missing — CSRF check failed"),
+        400,
+      );
     }
 
     let instanceId: string;
     try {
       instanceId = validateOAuthState(state);
     } catch (err) {
-      console.error('[HubSpot OAuth] State validation failed', err);
-      return html(createErrorHTML('Invalid or expired OAuth state'), 400);
+      console.error("[HubSpot OAuth] State validation failed", err);
+      return html(createErrorHTML("Invalid or expired OAuth state"), 400);
     }
 
     let redirectUri: string;
     try {
-      redirectUri = await getSecret('HUBSPOT_REDIRECT_URI');
+      redirectUri = await getSecret("HUBSPOT_REDIRECT_URI");
     } catch {
       redirectUri = `${url.protocol}//${url.host}/_wix/extensions/hubspot-callback`;
     }
 
-    console.log('[HubSpot OAuth] Exchanging code for tokens, redirectUri:', redirectUri);
-    let tokens: Awaited<ReturnType<typeof HubSpotService.exchangeCodeForTokens>>;
+    let tokens: Awaited<
+      ReturnType<typeof HubSpotService.exchangeCodeForTokens>
+    >;
     try {
       tokens = await HubSpotService.exchangeCodeForTokens(code, redirectUri);
-      console.log('[HubSpot OAuth] Token exchange OK, expires_in:', tokens.expires_in);
     } catch (tokenErr: any) {
-      console.error('[HubSpot OAuth] Token exchange FAILED:', tokenErr?.message ?? tokenErr);
-      return html(createErrorHTML(`Token exchange failed: ${tokenErr?.message ?? tokenErr}`), 502);
+      console.error(
+        "[HubSpot OAuth] Token exchange FAILED:",
+        tokenErr?.message ?? tokenErr,
+      );
+      return html(
+        createErrorHTML(
+          `Token exchange failed: ${tokenErr?.message ?? tokenErr}`,
+        ),
+        502,
+      );
     }
     const expiresAt = Date.now() + tokens.expires_in * 1000;
 
-    let hubspotAccountId = 'unknown';
+    let hubspotAccountId = "unknown";
     try {
-      const tokenInfoRes = await fetch('https://api.hubapi.com/oauth/v1/access-tokens/' + tokens.access_token);
+      const tokenInfoRes = await fetch(
+        "https://api.hubapi.com/oauth/v1/access-tokens/" + tokens.access_token,
+      );
       if (tokenInfoRes.ok) {
         const tokenInfo = await tokenInfoRes.json();
-        hubspotAccountId = String(tokenInfo.hub_id ?? tokenInfo.user_id ?? 'unknown');
+        hubspotAccountId = String(
+          tokenInfo.hub_id ?? tokenInfo.user_id ?? "unknown",
+        );
       }
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
 
-    // Use a direct Wix SDK client (AppStrategy) for CMS writes —
-    // no auth.elevate() / AsyncLocalStorage needed.
-    console.log('[HubSpot OAuth] Saving connection for instanceId:', instanceId, 'portalId:', hubspotAccountId);
     try {
       const client = await getDirectClient();
       const dataItems = client.use(items) as any;
 
-      // Check for existing connection
-      const existing = await dataItems.query(CONNECTIONS)
-        .eq('siteId', instanceId)
+      const existing = await dataItems
+        .query(CONNECTIONS)
+        .eq("siteId", instanceId)
         .find();
 
       const dataItem: Record<string, any> = {
@@ -119,13 +133,13 @@ export const GET: APIRoute = async ({ request }) => {
         refreshToken: tokens.refresh_token,
         expiresAt,
         scopes: JSON.stringify([
-          'crm.objects.contacts.read',
-          'crm.objects.contacts.write',
-          'crm.schemas.contacts.read',
-          'forms',
-          'oauth',
+          "crm.objects.contacts.read",
+          "crm.objects.contacts.write",
+          "crm.schemas.contacts.read",
+          "forms",
+          "oauth",
         ]),
-        status: 'connected',
+        status: "connected",
         connectedAt: new Date(),
       };
 
@@ -135,15 +149,20 @@ export const GET: APIRoute = async ({ request }) => {
 
       await dataItems.save(CONNECTIONS, dataItem);
     } catch (dbErr: any) {
-      console.error('[HubSpot OAuth] DB saveConnection FAILED:', dbErr?.message ?? dbErr);
-      return html(createErrorHTML(`Database save failed: ${dbErr?.message ?? dbErr}`), 503);
+      console.error(
+        "[HubSpot OAuth] DB saveConnection FAILED:",
+        dbErr?.message ?? dbErr,
+      );
+      return html(
+        createErrorHTML(`Database save failed: ${dbErr?.message ?? dbErr}`),
+        503,
+      );
     }
 
-    console.log('[HubSpot OAuth] Connection successful', { instanceId });
     return html(createSuccessHTML(), 200);
   } catch (err) {
-    console.error('[HubSpot OAuth] Callback error', err);
-    return html(createErrorHTML('Failed to complete OAuth'), 500);
+    console.error("[HubSpot OAuth] Callback error", err);
+    return html(createErrorHTML("Failed to complete OAuth"), 500);
   }
 };
 
@@ -152,7 +171,7 @@ export const GET: APIRoute = async ({ request }) => {
 function html(body: string, status: number): Response {
   return new Response(body, {
     status,
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    headers: { "Content-Type": "text/html; charset=utf-8" },
   });
 }
 
@@ -195,8 +214,13 @@ function createSuccessHTML(): string {
 }
 
 function createErrorHTML(message: string): string {
-  const safe = message.replace(/[<>"'&]/g,
-    (c) => ({ '<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;' }[c] ?? c));
+  const safe = message.replace(
+    /[<>"'&]/g,
+    (c) =>
+      ({ "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;", "&": "&amp;" })[
+        c
+      ] ?? c,
+  );
   return `<!DOCTYPE html>
 <html>
 <head>

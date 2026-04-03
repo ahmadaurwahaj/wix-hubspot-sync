@@ -1,5 +1,5 @@
-import { type FC, useEffect, useState } from 'react';
-import { dashboard } from '@wix/dashboard';
+import { type FC, useEffect, useState } from "react";
+import { dashboard } from "@wix/dashboard";
 import {
   Page,
   WixDesignSystemProvider,
@@ -9,10 +9,10 @@ import {
   Text,
   Loader,
   Badge,
-} from '@wix/design-system';
-import '@wix/design-system/styles.global.css';
-import * as Icons from '@wix/wix-ui-icons-common';
-import { getInstanceId, apiFetch } from '../../lib/api';
+} from "@wix/design-system";
+import "@wix/design-system/styles.global.css";
+import * as Icons from "@wix/wix-ui-icons-common";
+import { getInstanceId, apiFetch } from "../../lib/api";
 
 interface DashboardData {
   connected: boolean;
@@ -29,40 +29,42 @@ const DashboardPage: FC = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData>({ connected: false });
 
-
-  const instanceId = getInstanceId(); 
+  const instanceId = getInstanceId();
 
   useEffect(() => {
-    console.log('[my-page] Using instance ID:', instanceId);
     fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
-   
-      const statusRes = await apiFetch(`/api/dashboard/connection?instanceId=${instanceId}`);
+
+      const statusRes = await apiFetch(
+        `/api/dashboard/connection?instanceId=${instanceId}`,
+      );
       const statusData = await statusRes.json();
-      
+
       const dashboardData: DashboardData = {
         connected: statusData.connected,
       };
 
       if (statusData.connected) {
-        const syncRes = await apiFetch(`/api/dashboard/sync?instanceId=${instanceId}&limit=1`);
+        const syncRes = await apiFetch(
+          `/api/dashboard/sync?instanceId=${instanceId}&limit=1`,
+        );
         const syncData = await syncRes.json();
         dashboardData.stats = syncData.stats;
 
-
-        const mappingsRes = await apiFetch(`/api/dashboard/mappings?instanceId=${instanceId}`);
+        const mappingsRes = await apiFetch(
+          `/api/dashboard/mappings?instanceId=${instanceId}`,
+        );
         const mappingsData = await mappingsRes.json();
         dashboardData.mappingsCount = mappingsData.mappings?.length || 0;
       }
 
       setData(dashboardData);
     } catch (err) {
-      console.error('Failed to fetch dashboard data', err);
+      console.error("Failed to fetch dashboard data", err);
     } finally {
       setLoading(false);
     }
@@ -83,9 +85,10 @@ const DashboardPage: FC = () => {
     );
   }
 
-  const successRate = data.stats && data.stats.total > 0
-    ? Math.round((data.stats.success / data.stats.total) * 100)
-    : 0;
+  const successRate =
+    data.stats && data.stats.total > 0
+      ? Math.round((data.stats.success / data.stats.total) * 100)
+      : 0;
 
   return (
     <WixDesignSystemProvider features={{ newColorsBranding: true }}>
@@ -120,17 +123,24 @@ const DashboardPage: FC = () => {
                       <Box gap="SP2" verticalAlign="middle">
                         <Icons.Time />
                         <Text size="small" secondary>
-                          Last sync: {new Date(data.stats.lastSync).toLocaleString()}
+                          Last sync:{" "}
+                          {new Date(data.stats.lastSync).toLocaleString()}
                         </Text>
                       </Box>
                     )}
                   </Box>
                 ) : (
                   <Box direction="vertical" gap="SP3">
-                    <Text>Connect your HubSpot account to start syncing contacts</Text>
+                    <Text>
+                      Connect your HubSpot account to start syncing contacts
+                    </Text>
                     <Box>
                       <Button
-                        onClick={() => dashboard.navigate({ pageId: '8f3e9a2b-4c7d-4e1f-9b8a-3d5c6e7f8a9b' })}
+                        onClick={() =>
+                          dashboard.navigate({
+                            pageId: "8f3e9a2b-4c7d-4e1f-9b8a-3d5c6e7f8a9b",
+                          })
+                        }
                         prefixIcon={<Icons.Link />}
                       >
                         Connect HubSpot
@@ -154,16 +164,20 @@ const DashboardPage: FC = () => {
                       <Text weight="bold">Connection</Text>
                       <Text size="small" secondary>
                         {data.connected
-                          ? 'Manage your HubSpot connection'
-                          : 'Connect your HubSpot account'}
+                          ? "Manage your HubSpot connection"
+                          : "Connect your HubSpot account"}
                       </Text>
                     </Box>
                     <Button
                       size="small"
                       priority="secondary"
-                      onClick={() => dashboard.navigate({ pageId: '8f3e9a2b-4c7d-4e1f-9b8a-3d5c6e7f8a9b' })}
+                      onClick={() =>
+                        dashboard.navigate({
+                          pageId: "8f3e9a2b-4c7d-4e1f-9b8a-3d5c6e7f8a9b",
+                        })
+                      }
                     >
-                      {data.connected ? 'Manage' : 'Connect'}
+                      {data.connected ? "Manage" : "Connect"}
                     </Button>
                   </Box>
 
@@ -182,7 +196,11 @@ const DashboardPage: FC = () => {
                     <Button
                       size="small"
                       priority="secondary"
-                      onClick={() => dashboard.navigate({ pageId: '2d4e6f8a-9b1c-4d3e-8f7a-5b6c7d8e9f0a' })}
+                      onClick={() =>
+                        dashboard.navigate({
+                          pageId: "2d4e6f8a-9b1c-4d3e-8f7a-5b6c7d8e9f0a",
+                        })
+                      }
                       disabled={!data.connected}
                     >
                       Configure
@@ -202,7 +220,11 @@ const DashboardPage: FC = () => {
                     <Button
                       size="small"
                       priority="secondary"
-                      onClick={() => dashboard.navigate({ pageId: '5a7b9c1d-3e5f-4a7b-9c1d-3e5f7a9b1c3d' })}
+                      onClick={() =>
+                        dashboard.navigate({
+                          pageId: "5a7b9c1d-3e5f-4a7b-9c1d-3e5f7a9b1c3d",
+                        })
+                      }
                       disabled={!data.connected}
                     >
                       View Logs
@@ -235,7 +257,6 @@ const DashboardPage: FC = () => {
               </Card>
             )}
 
-   
             <Card>
               <Card.Header title="Features" />
               <Card.Divider />
@@ -255,15 +276,11 @@ const DashboardPage: FC = () => {
                   </Box>
                   <Box gap="SP2">
                     <Icons.CircleSmallFilled size="12px" />
-                    <Text size="small">
-                      Configurable field mappings
-                    </Text>
+                    <Text size="small">Configurable field mappings</Text>
                   </Box>
                   <Box gap="SP2">
                     <Icons.CircleSmallFilled size="12px" />
-                    <Text size="small">
-                      Conflict resolution strategies
-                    </Text>
+                    <Text size="small">Conflict resolution strategies</Text>
                   </Box>
                   <Box gap="SP2">
                     <Icons.CircleSmallFilled size="12px" />

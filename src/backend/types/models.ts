@@ -7,19 +7,18 @@ export interface HubSpotConnection {
   refreshToken: string;
   expiresAt: number;
   scopes: string[];
-  status: 'connected' | 'disconnected' | 'error';
+  status: "connected" | "disconnected" | "error";
   connectedAt: Date;
   lastSyncAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
-
 export interface FieldMapping {
   wixField: string;
   hubspotProperty: string;
-  direction: 'wix_to_hubspot' | 'hubspot_to_wix' | 'bidirectional';
-  transform?: 'trim' | 'lowercase' | 'uppercase' | 'none';
+  direction: "wix_to_hubspot" | "hubspot_to_wix" | "bidirectional";
+  transform?: "trim" | "lowercase" | "uppercase" | "none";
   required?: boolean;
 }
 
@@ -27,11 +26,10 @@ export interface FieldMappingConfig {
   id?: number;
   siteId: string;
   mappings: FieldMapping[];
-  conflictResolution: 'last_updated_wins' | 'hubspot_wins' | 'wix_wins';
+  conflictResolution: "last_updated_wins" | "hubspot_wins" | "wix_wins";
   createdAt: Date;
   updatedAt: Date;
 }
-
 
 export interface SyncMapping {
   id?: number;
@@ -39,28 +37,26 @@ export interface SyncMapping {
   wixContactId?: string;
   hubspotContactId?: string;
   lastSyncedAt: Date;
-  lastSyncSource: 'wix' | 'hubspot' | 'wix_form';
+  lastSyncSource: "wix" | "hubspot" | "wix_form";
   syncCorrelationId: string;
   version: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
-
 export interface SyncLog {
   id?: number;
   siteId: string;
   syncCorrelationId: string;
-  source: 'wix' | 'hubspot' | 'wix_form';
-  action: 'create' | 'update' | 'delete';
-  status: 'success' | 'error' | 'skipped';
+  source: "wix" | "hubspot" | "wix_form";
+  action: "create" | "update" | "delete";
+  status: "success" | "error" | "skipped";
   wixContactId?: string;
   hubspotContactId?: string;
   error?: string;
   metadata?: Record<string, any>;
   timestamp: Date;
 }
-
 
 export interface HubSpotTokenResponse {
   access_token: string;
@@ -69,7 +65,6 @@ export interface HubSpotTokenResponse {
   token_type: string;
 }
 
-
 export interface HubSpotContact {
   id: string;
   properties: Record<string, string>;
@@ -77,7 +72,6 @@ export interface HubSpotContact {
   updatedAt: string;
   archived: boolean;
 }
-
 
 export interface WixContact {
   _id: string;
@@ -91,8 +85,6 @@ export interface WixContact {
   [key: string]: any;
 }
 
-
-// Wix Form Submission Event
 export interface WixFormSubmission {
   formId: string;
   submissions: Array<{ fieldName: string; value: unknown }>;

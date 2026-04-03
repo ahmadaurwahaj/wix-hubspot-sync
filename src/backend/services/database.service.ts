@@ -1,19 +1,16 @@
-import { items } from '@wix/data';
-import { auth } from '@wix/essentials';
+import { items } from "@wix/data";
+import { auth } from "@wix/essentials";
 import type {
   HubSpotConnection,
   FieldMappingConfig,
   SyncMapping,
   SyncLog,
-} from '../types/models';
-import { logger } from '../utils/logger';
-import { COLLECTIONS } from '../constants';
+} from "../types/models";
+import { logger } from "../utils/logger";
+import { COLLECTIONS } from "../constants";
 
 const { CONNECTIONS, FIELD_MAPPINGS, SYNC_MAPPINGS, SYNC_LOGS } = COLLECTIONS;
 
-// Lazy-elevated data operations — auth.elevate() requires the Wix runtime
-// context (AsyncLocalStorage) which is only available at call time, not at
-// module load time. Wrapping in functions defers the elevation.
 function elevatedInsert(...args: Parameters<typeof items.insert>) {
   return auth.elevate(items.insert)(...args);
 }
@@ -31,9 +28,11 @@ function elevatedQuery(...args: Parameters<typeof items.query>) {
 }
 
 export class DatabaseService {
-  static async saveConnection(connection: Omit<HubSpotConnection, 'id'>): Promise<void> {
+  static async saveConnection(
+    connection: Omit<HubSpotConnection, "id">,
+  ): Promise<void> {
     const existing = await elevatedQuery(CONNECTIONS)
-      .eq('siteId', connection.siteId)
+      .eq("siteId", connection.siteId)
       .find();
 
     const dataItem: Record<string, any> = {
@@ -44,9 +43,10 @@ export class DatabaseService {
       expiresAt: connection.expiresAt,
       scopes: JSON.stringify(connection.scopes),
       status: connection.status,
-      connectedAt: connection.connectedAt instanceof Date
-        ? connection.connectedAt
-        : new Date(connection.connectedAt),
+      connectedAt:
+        connection.connectedAt instanceof Date
+          ? connection.connectedAt
+          : new Date(connection.connectedAt),
     };
 
     if (existing.items.length > 0) {
@@ -54,13 +54,13 @@ export class DatabaseService {
     }
 
     await elevatedSave(CONNECTIONS, dataItem);
-    logger.info('Connection saved', { siteId: connection.siteId });
+    logger.info("Connection saved", { siteId: connection.siteId });
   }
 
-  static async getConnection(siteId: string): Promise<HubSpotConnection | null> {
-    const result = await elevatedQuery(CONNECTIONS)
-      .eq('siteId', siteId)
-      .find();
+  static async getConnection(
+    siteId: string,
+  ): Promise<HubSpotConnection | null> {
+    const result = await elevatedQuery(CONNECTIONS).eq("siteId", siteId).find();
 
     if (result.items.length === 0) return null;
 
@@ -68,13 +68,9 @@ export class DatabaseService {
     return DatabaseService.mapConnectionItem(item);
   }
 
-  /**
-   * Get the first active (connected) HubSpot connection.
-   * Used by backend events that don't receive an instanceId in their payload.
-   */
   static async getActiveConnection(): Promise<HubSpotConnection | null> {
     const result = await elevatedQuery(CONNECTIONS)
-      .eq('status', 'connected')
+      .eq("status", "connected")
       .find();
 
     if (result.items.length === 0) return null;
@@ -83,15 +79,17 @@ export class DatabaseService {
     return DatabaseService.mapConnectionItem(item);
   }
 
-  private static mapConnectionItem(item: Record<string, any>): HubSpotConnection {
+  private static mapConnectionItem(
+    item: Record<string, any>,
+  ): HubSpotConnection {
     return {
       siteId: item.siteId,
       hubspotAccountId: item.hubspotAccountId,
       accessToken: item.accessToken,
       refreshToken: item.refreshToken,
       expiresAt: item.expiresAt,
-      scopes: JSON.parse(item.scopes || '[]'),
-      status: item.status as 'connected' | 'disconnected' | 'error',
+      scopes: JSON.parse(item.scopes || "[]"),
+      status: item.status as "connected" | "disconnected" | "error",
       connectedAt: new Date(item.connectedAt),
       lastSyncAt: item.lastSyncAt ? new Date(item.lastSyncAt) : undefined,
       createdAt: new Date(item._createdDate),
@@ -103,11 +101,9 @@ export class DatabaseService {
     siteId: string,
     accessToken: string,
     refreshToken: string,
-    expiresAt: number
+    expiresAt: number,
   ): Promise<void> {
-    const result = await elevatedQuery(CONNECTIONS)
-      .eq('siteId', siteId)
-      .find();
+    const result = await elevatedQuery(CONNECTIONS).eq("siteId", siteId).find();
 
     if (result.items.length === 0) return;
 
@@ -121,20 +117,20 @@ export class DatabaseService {
   }
 
   static async deleteConnection(siteId: string): Promise<void> {
-    const result = await elevatedQuery(CONNECTIONS)
-      .eq('siteId', siteId)
-      .find();
+    const result = await elevatedQuery(CONNECTIONS).eq("siteId", siteId).find();
 
     if (result.items.length > 0) {
       await elevatedRemove(CONNECTIONS, result.items[0]._id!);
     }
-    logger.info('Connection deleted', { siteId });
+    logger.info("Connection deleted", { siteId });
   }
 
-  static async getConnectionByHubSpotAccount(hubspotAccountId: string): Promise<HubSpotConnection | null> {
+  static async getConnectionByHubSpotAccount(
+    hubspotAccountId: string,
+  ): Promise<HubSpotConnection | null> {
     const result = await elevatedQuery(CONNECTIONS)
-      .eq('hubspotAccountId', hubspotAccountId)
-      .eq('status', 'connected')
+      .eq("hubspotAccountId", hubspotAccountId)
+      .eq("status", "connected")
       .limit(1)
       .find();
 
@@ -147,8 +143,8 @@ export class DatabaseService {
       accessToken: item.accessToken,
       refreshToken: item.refreshToken,
       expiresAt: item.expiresAt,
-      scopes: JSON.parse(item.scopes || '[]'),
-      status: item.status as 'connected' | 'disconnected' | 'error',
+      scopes: JSON.parse(item.scopes || "[]"),
+      status: item.status as "connected" | "disconnected" | "error",
       connectedAt: new Date(item.connectedAt),
       lastSyncAt: item.lastSyncAt ? new Date(item.lastSyncAt) : undefined,
       createdAt: new Date(item._createdDate),
@@ -156,11 +152,11 @@ export class DatabaseService {
     };
   }
 
-  // ─── Field Mappings ─────────────────────────────────────────────────────────
-
-  static async saveFieldMappings(config: Omit<FieldMappingConfig, 'id'>): Promise<void> {
+  static async saveFieldMappings(
+    config: Omit<FieldMappingConfig, "id">,
+  ): Promise<void> {
     const existing = await elevatedQuery(FIELD_MAPPINGS)
-      .eq('siteId', config.siteId)
+      .eq("siteId", config.siteId)
       .find();
 
     const dataItem: Record<string, any> = {
@@ -174,12 +170,17 @@ export class DatabaseService {
     }
 
     await elevatedSave(FIELD_MAPPINGS, dataItem);
-    logger.info('Field mappings saved', { siteId: config.siteId, count: config.mappings.length });
+    logger.info("Field mappings saved", {
+      siteId: config.siteId,
+      count: config.mappings.length,
+    });
   }
 
-  static async getFieldMappings(siteId: string): Promise<FieldMappingConfig | null> {
+  static async getFieldMappings(
+    siteId: string,
+  ): Promise<FieldMappingConfig | null> {
     const result = await elevatedQuery(FIELD_MAPPINGS)
-      .eq('siteId', siteId)
+      .eq("siteId", siteId)
       .find();
 
     if (result.items.length === 0) return null;
@@ -187,27 +188,31 @@ export class DatabaseService {
     const item = result.items[0] as Record<string, any>;
     return {
       siteId: item.siteId,
-      mappings: JSON.parse(item.mappings || '[]'),
-      conflictResolution: item.conflictResolution as 'last_updated_wins' | 'hubspot_wins' | 'wix_wins',
+      mappings: JSON.parse(item.mappings || "[]"),
+      conflictResolution: item.conflictResolution as
+        | "last_updated_wins"
+        | "hubspot_wins"
+        | "wix_wins",
       createdAt: new Date(item._createdDate),
       updatedAt: new Date(item._updatedDate),
     };
   }
 
-  // ─── Sync Mappings ──────────────────────────────────────────────────────────
-
-  static async saveSyncMapping(mapping: Omit<SyncMapping, 'id'>): Promise<void> {
-    const lastSyncedAt = mapping.lastSyncedAt instanceof Date
-      ? mapping.lastSyncedAt
-      : new Date(mapping.lastSyncedAt);
+  static async saveSyncMapping(
+    mapping: Omit<SyncMapping, "id">,
+  ): Promise<void> {
+    const lastSyncedAt =
+      mapping.lastSyncedAt instanceof Date
+        ? mapping.lastSyncedAt
+        : new Date(mapping.lastSyncedAt);
 
     // Try to find existing mapping by wixContactId or hubspotContactId
     let existingItem: Record<string, any> | null = null;
 
     if (mapping.wixContactId) {
       const result = await elevatedQuery(SYNC_MAPPINGS)
-        .eq('siteId', mapping.siteId)
-        .eq('wixContactId', mapping.wixContactId)
+        .eq("siteId", mapping.siteId)
+        .eq("wixContactId", mapping.wixContactId)
         .find();
       if (result.items.length > 0) {
         existingItem = result.items[0] as Record<string, any>;
@@ -216,8 +221,8 @@ export class DatabaseService {
 
     if (!existingItem && mapping.hubspotContactId) {
       const result = await elevatedQuery(SYNC_MAPPINGS)
-        .eq('siteId', mapping.siteId)
-        .eq('hubspotContactId', mapping.hubspotContactId)
+        .eq("siteId", mapping.siteId)
+        .eq("hubspotContactId", mapping.hubspotContactId)
         .find();
       if (result.items.length > 0) {
         existingItem = result.items[0] as Record<string, any>;
@@ -241,29 +246,37 @@ export class DatabaseService {
     await elevatedSave(SYNC_MAPPINGS, dataItem);
   }
 
-  static async getSyncMappingByWixId(siteId: string, wixContactId: string): Promise<SyncMapping | null> {
+  static async getSyncMappingByWixId(
+    siteId: string,
+    wixContactId: string,
+  ): Promise<SyncMapping | null> {
     const result = await elevatedQuery(SYNC_MAPPINGS)
-      .eq('siteId', siteId)
-      .eq('wixContactId', wixContactId)
+      .eq("siteId", siteId)
+      .eq("wixContactId", wixContactId)
       .find();
 
     if (result.items.length === 0) return null;
     return this.itemToSyncMapping(result.items[0] as Record<string, any>);
   }
 
-  static async getSyncMappingByHubSpotId(siteId: string, hubspotContactId: string): Promise<SyncMapping | null> {
+  static async getSyncMappingByHubSpotId(
+    siteId: string,
+    hubspotContactId: string,
+  ): Promise<SyncMapping | null> {
     const result = await elevatedQuery(SYNC_MAPPINGS)
-      .eq('siteId', siteId)
-      .eq('hubspotContactId', hubspotContactId)
+      .eq("siteId", siteId)
+      .eq("hubspotContactId", hubspotContactId)
       .find();
 
     if (result.items.length === 0) return null;
     return this.itemToSyncMapping(result.items[0] as Record<string, any>);
   }
 
-  static async getSyncMappingByCorrelationId(correlationId: string): Promise<SyncMapping | null> {
+  static async getSyncMappingByCorrelationId(
+    correlationId: string,
+  ): Promise<SyncMapping | null> {
     const result = await elevatedQuery(SYNC_MAPPINGS)
-      .eq('syncCorrelationId', correlationId)
+      .eq("syncCorrelationId", correlationId)
       .find();
 
     if (result.items.length === 0) return null;
@@ -276,7 +289,7 @@ export class DatabaseService {
       wixContactId: item.wixContactId || undefined,
       hubspotContactId: item.hubspotContactId || undefined,
       lastSyncedAt: new Date(item.lastSyncedAt),
-      lastSyncSource: item.lastSyncSource as 'wix' | 'hubspot' | 'wix_form',
+      lastSyncSource: item.lastSyncSource as "wix" | "hubspot" | "wix_form",
       syncCorrelationId: item.syncCorrelationId,
       version: item.version,
       createdAt: new Date(item._createdDate),
@@ -284,9 +297,7 @@ export class DatabaseService {
     };
   }
 
-  // ─── Sync Logs ──────────────────────────────────────────────────────────────
-
-  static async createSyncLog(log: Omit<SyncLog, 'id'>): Promise<void> {
+  static async createSyncLog(log: Omit<SyncLog, "id">): Promise<void> {
     await elevatedInsert(SYNC_LOGS, {
       siteId: log.siteId,
       syncCorrelationId: log.syncCorrelationId,
@@ -301,19 +312,22 @@ export class DatabaseService {
     });
   }
 
-  static async getSyncLogs(siteId: string, limit: number = 50): Promise<SyncLog[]> {
+  static async getSyncLogs(
+    siteId: string,
+    limit: number = 50,
+  ): Promise<SyncLog[]> {
     const result = await elevatedQuery(SYNC_LOGS)
-      .eq('siteId', siteId)
-      .descending('logTimestamp')
+      .eq("siteId", siteId)
+      .descending("logTimestamp")
       .limit(limit)
       .find();
 
     return result.items.map((item: Record<string, any>) => ({
       siteId: item.siteId,
       syncCorrelationId: item.syncCorrelationId,
-      source: item.source as 'wix' | 'hubspot' | 'wix_form',
-      action: item.action as 'create' | 'update' | 'delete',
-      status: item.status as 'success' | 'error' | 'skipped',
+      source: item.source as "wix" | "hubspot" | "wix_form",
+      action: item.action as "create" | "update" | "delete",
+      status: item.status as "success" | "error" | "skipped",
       wixContactId: item.wixContactId || undefined,
       hubspotContactId: item.hubspotContactId || undefined,
       error: item.error || undefined,
@@ -329,25 +343,37 @@ export class DatabaseService {
     skipped: number;
     lastSync?: Date;
   }> {
-    const [successCount, errorCount, skippedCount, lastLog] = await Promise.all([
-      elevatedQuery(SYNC_LOGS).eq('siteId', siteId).eq('status', 'success').count(),
-      elevatedQuery(SYNC_LOGS).eq('siteId', siteId).eq('status', 'error').count(),
-      elevatedQuery(SYNC_LOGS).eq('siteId', siteId).eq('status', 'skipped').count(),
-      elevatedQuery(SYNC_LOGS)
-        .eq('siteId', siteId)
-        .descending('logTimestamp')
-        .limit(1)
-        .find(),
-    ]);
+    const [successCount, errorCount, skippedCount, lastLog] = await Promise.all(
+      [
+        elevatedQuery(SYNC_LOGS)
+          .eq("siteId", siteId)
+          .eq("status", "success")
+          .count(),
+        elevatedQuery(SYNC_LOGS)
+          .eq("siteId", siteId)
+          .eq("status", "error")
+          .count(),
+        elevatedQuery(SYNC_LOGS)
+          .eq("siteId", siteId)
+          .eq("status", "skipped")
+          .count(),
+        elevatedQuery(SYNC_LOGS)
+          .eq("siteId", siteId)
+          .descending("logTimestamp")
+          .limit(1)
+          .find(),
+      ],
+    );
 
     return {
       total: successCount + errorCount + skippedCount,
       success: successCount,
       error: errorCount,
       skipped: skippedCount,
-      lastSync: lastLog.items.length > 0
-        ? new Date((lastLog.items[0] as Record<string, any>).logTimestamp)
-        : undefined,
+      lastSync:
+        lastLog.items.length > 0
+          ? new Date((lastLog.items[0] as Record<string, any>).logTimestamp)
+          : undefined,
     };
   }
 }

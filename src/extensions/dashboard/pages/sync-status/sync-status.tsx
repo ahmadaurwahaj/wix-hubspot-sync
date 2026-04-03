@@ -1,5 +1,5 @@
-import { type FC, useEffect, useState } from 'react';
-import { dashboard } from '@wix/dashboard';
+import { type FC, useEffect, useState } from "react";
+import { dashboard } from "@wix/dashboard";
 import {
   Page,
   WixDesignSystemProvider,
@@ -11,16 +11,16 @@ import {
   Table,
   Badge,
   EmptyState,
-} from '@wix/design-system';
-import '@wix/design-system/styles.global.css';
-import * as Icons from '@wix/wix-ui-icons-common';
-import { getInstanceId, apiFetch } from '../../lib/api';
+} from "@wix/design-system";
+import "@wix/design-system/styles.global.css";
+import * as Icons from "@wix/wix-ui-icons-common";
+import { getInstanceId, apiFetch } from "../../lib/api";
 
 interface SyncLog {
   _id: string;
-  source: 'wix' | 'hubspot' | 'wix_form';
-  action: 'create' | 'update' | 'delete';
-  status: 'success' | 'error' | 'skipped';
+  source: "wix" | "hubspot" | "wix_form";
+  action: "create" | "update" | "delete";
+  status: "success" | "error" | "skipped";
   wixContactId?: string;
   hubspotContactId?: string;
   error?: string;
@@ -47,7 +47,6 @@ const SyncStatusPage: FC = () => {
   const instanceId = getInstanceId();
 
   useEffect(() => {
-    console.log('[sync-status] Using instance ID:', instanceId);
     fetchData();
 
     const interval = setInterval(fetchData, 30000);
@@ -57,9 +56,10 @@ const SyncStatusPage: FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
- 
-      const statusRes = await apiFetch(`/api/dashboard/connection?instanceId=${instanceId}`);
+
+      const statusRes = await apiFetch(
+        `/api/dashboard/connection?instanceId=${instanceId}`,
+      );
       const statusData = await statusRes.json();
       setConnected(statusData.connected);
 
@@ -68,14 +68,16 @@ const SyncStatusPage: FC = () => {
         return;
       }
 
-      const logsRes = await apiFetch(`/api/dashboard/sync?instanceId=${instanceId}&limit=50`);
+      const logsRes = await apiFetch(
+        `/api/dashboard/sync?instanceId=${instanceId}&limit=50`,
+      );
       const logsData = await logsRes.json();
-      
+
       setLogs(logsData.logs || []);
       setStats(logsData.stats || { total: 0, success: 0, error: 0 });
       setError(null);
     } catch (err) {
-      setError('Failed to load sync status');
+      setError("Failed to load sync status");
       console.error(err);
     } finally {
       setLoading(false);
@@ -85,22 +87,21 @@ const SyncStatusPage: FC = () => {
   const handleManualSync = async () => {
     try {
       setSyncing(true);
-      
 
-      const res = await apiFetch('/api/dashboard/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await apiFetch("/api/dashboard/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ instanceId }),
       });
-      
+
       if (!res.ok) {
-        throw new Error('Failed to trigger sync');
+        throw new Error("Failed to trigger sync");
       }
-      
-      alert('Sync started! Check back in a few moments.');
+
+      alert("Sync started! Check back in a few moments.");
       setTimeout(fetchData, 3000);
     } catch (err) {
-      setError('Failed to trigger sync');
+      setError("Failed to trigger sync");
       console.error(err);
     } finally {
       setSyncing(false);
@@ -109,11 +110,11 @@ const SyncStatusPage: FC = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'success':
+      case "success":
         return <Badge skin="success">Success</Badge>;
-      case 'error':
+      case "error":
         return <Badge skin="danger">Error</Badge>;
-      case 'skipped':
+      case "skipped":
         return <Badge skin="neutralLight">Skipped</Badge>;
       default:
         return <Badge>{status}</Badge>;
@@ -121,26 +122,34 @@ const SyncStatusPage: FC = () => {
   };
 
   const getSourceIcon = (source: string) => {
-    return source === 'wix' ? <Icons.StatusComplete /> : <Icons.StatusComplete />;
+    return source === "wix" ? (
+      <Icons.StatusComplete />
+    ) : (
+      <Icons.StatusComplete />
+    );
   };
 
   const getSourceLabel = (source: string) => {
     switch (source) {
-      case 'wix': return 'Wix';
-      case 'wix_form': return 'Wix Form';
-      case 'hubspot': return 'HubSpot';
-      default: return source;
+      case "wix":
+        return "Wix";
+      case "wix_form":
+        return "Wix Form";
+      case "hubspot":
+        return "HubSpot";
+      default:
+        return source;
     }
   };
 
   const getActionText = (action: string) => {
     switch (action) {
-      case 'create':
-        return 'Created';
-      case 'update':
-        return 'Updated';
-      case 'delete':
-        return 'Deleted';
+      case "create":
+        return "Created";
+      case "update":
+        return "Updated";
+      case "delete":
+        return "Deleted";
       default:
         return action;
     }
@@ -173,7 +182,13 @@ const SyncStatusPage: FC = () => {
               subtitle="You need to connect your HubSpot account to view sync status"
               image={<Icons.Link />}
             >
-              <Button onClick={() => dashboard.navigate({ pageId: '8f3e9a2b-4c7d-4e1f-9b8a-3d5c6e7f8a9b' })}>
+              <Button
+                onClick={() =>
+                  dashboard.navigate({
+                    pageId: "8f3e9a2b-4c7d-4e1f-9b8a-3d5c6e7f8a9b",
+                  })
+                }
+              >
                 Go to Connection
               </Button>
             </EmptyState>
@@ -183,9 +198,12 @@ const SyncStatusPage: FC = () => {
     );
   }
 
-  const successRate = stats && (stats.success + stats.error) > 0
-    ? Math.round((stats.success / (stats.success + stats.error)) * 100)
-    : stats && stats.success > 0 ? 100 : 0;
+  const successRate =
+    stats && stats.success + stats.error > 0
+      ? Math.round((stats.success / (stats.success + stats.error)) * 100)
+      : stats && stats.success > 0
+        ? 100
+        : 0;
 
   return (
     <WixDesignSystemProvider features={{ newColorsBranding: true }}>
@@ -210,7 +228,7 @@ const SyncStatusPage: FC = () => {
                 disabled={syncing}
                 prefixIcon={<Icons.Refresh />}
               >
-                {syncing ? 'Syncing...' : 'Manual Sync'}
+                {syncing ? "Syncing..." : "Manual Sync"}
               </Button>
             </Box>
           }
@@ -230,24 +248,44 @@ const SyncStatusPage: FC = () => {
 
             <Box gap="SP4">
               <Box direction="vertical" gap="SP1" width="20%">
-                <Text size="small" secondary>Total Syncs</Text>
-                <Text size="medium" weight="bold">{stats?.total || 0}</Text>
+                <Text size="small" secondary>
+                  Total Syncs
+                </Text>
+                <Text size="medium" weight="bold">
+                  {stats?.total || 0}
+                </Text>
               </Box>
               <Box direction="vertical" gap="SP1" width="20%">
-                <Text size="small" secondary>Successful</Text>
-                <Text size="medium" weight="bold" skin="success">{stats?.success || 0}</Text>
+                <Text size="small" secondary>
+                  Successful
+                </Text>
+                <Text size="medium" weight="bold" skin="success">
+                  {stats?.success || 0}
+                </Text>
               </Box>
               <Box direction="vertical" gap="SP1" width="20%">
-                <Text size="small" secondary>Skipped</Text>
-                <Text size="medium" weight="bold" skin="premium">{stats?.skipped || 0}</Text>
+                <Text size="small" secondary>
+                  Skipped
+                </Text>
+                <Text size="medium" weight="bold" skin="premium">
+                  {stats?.skipped || 0}
+                </Text>
               </Box>
               <Box direction="vertical" gap="SP1" width="20%">
-                <Text size="small" secondary>Errors</Text>
-                <Text size="medium" weight="bold" skin="error">{stats?.error || 0}</Text>
+                <Text size="small" secondary>
+                  Errors
+                </Text>
+                <Text size="medium" weight="bold" skin="error">
+                  {stats?.error || 0}
+                </Text>
               </Box>
               <Box direction="vertical" gap="SP1" width="20%">
-                <Text size="small" secondary>Success Rate</Text>
-                <Text size="medium" weight="bold">{successRate}%</Text>
+                <Text size="small" secondary>
+                  Success Rate
+                </Text>
+                <Text size="medium" weight="bold">
+                  {successRate}%
+                </Text>
               </Box>
             </Box>
 
@@ -284,8 +322,8 @@ const SyncStatusPage: FC = () => {
                     data={logs}
                     columns={[
                       {
-                        title: 'Time',
-                        width: '180px',
+                        title: "Time",
+                        width: "180px",
                         render: (row: SyncLog) => (
                           <Text size="small">
                             {new Date(row.timestamp).toLocaleString()}
@@ -293,8 +331,8 @@ const SyncStatusPage: FC = () => {
                         ),
                       },
                       {
-                        title: 'Source',
-                        width: '100px',
+                        title: "Source",
+                        width: "100px",
                         render: (row: SyncLog) => (
                           <Box gap="SP1" verticalAlign="middle">
                             {getSourceIcon(row.source)}
@@ -305,19 +343,19 @@ const SyncStatusPage: FC = () => {
                         ),
                       },
                       {
-                        title: 'Action',
-                        width: '100px',
+                        title: "Action",
+                        width: "100px",
                         render: (row: SyncLog) => (
                           <Text size="small">{getActionText(row.action)}</Text>
                         ),
                       },
                       {
-                        title: 'Status',
-                        width: '100px',
+                        title: "Status",
+                        width: "100px",
                         render: (row: SyncLog) => getStatusBadge(row.status),
                       },
                       {
-                        title: 'Contact IDs',
+                        title: "Contact IDs",
                         render: (row: SyncLog) => (
                           <Box direction="vertical" gap="SP1">
                             {row.wixContactId && (
@@ -334,20 +372,21 @@ const SyncStatusPage: FC = () => {
                         ),
                       },
                       {
-                        title: 'Details',
-                        render: (row: SyncLog) => (
+                        title: "Details",
+                        render: (row: SyncLog) =>
                           row.error ? (
                             <Box gap="SP1" verticalAlign="middle">
                               <Icons.StatusWarning size="18px" />
                               <Text size="small" skin="error">
                                 {row.error.substring(0, 50)}
-                                {row.error.length > 50 ? '...' : ''}
+                                {row.error.length > 50 ? "..." : ""}
                               </Text>
                             </Box>
                           ) : (
-                            <Text size="small" secondary>—</Text>
-                          )
-                        ),
+                            <Text size="small" secondary>
+                              —
+                            </Text>
+                          ),
                       },
                     ]}
                   >
