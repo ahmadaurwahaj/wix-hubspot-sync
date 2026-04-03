@@ -96,9 +96,7 @@ shippingRates.provideHandlers({
   getShippingRates: async (payload) => {
     const { request, metadata } = payload;
 
-    // Implement custom logic based on request data
-    // - request contains cart items, shipping address, etc.
-    // - metadata contains currency, locale, etc.
+    
 
     return {
       shippingRates: [
@@ -178,7 +176,7 @@ export const myFunction = async () => {
 - **Use TypeScript types:** Leverage SDK types for better type safety
 - **Test edge cases:** Empty carts, missing addresses, invalid data
 - **Performance:** Keep calculations efficient - these run on every checkout
-- **Logging:** Add console.log for debugging but keep production logs minimal
+
 
 ## Extension Registration
 
