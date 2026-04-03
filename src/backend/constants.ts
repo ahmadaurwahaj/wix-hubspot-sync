@@ -1,4 +1,4 @@
-export const APP_NAMESPACE = '@zohaibahmad7/wh-integration';
+export const APP_NAMESPACE = import.meta.env.APP_NAMESPACE ?? '@zohaibahmad7/wh-integration';
 
 export const COLLECTIONS = {
   CONNECTIONS: `${APP_NAMESPACE}/connections`,
