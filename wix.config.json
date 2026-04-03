@@ -1,6 +1,5 @@
 {
-  "appId": "2b468278-75a7-4a5d-94b8-2c82ad42fa6e",
-  "projectId": "wh-integration",
+  "appId": "your-app-id",
+  "projectId": "your-project-id",
   "projectType": "App"
-
 }
